@@ -2,6 +2,7 @@ import { Card, Typography, IconButton, Box } from '@mui/material'
 import LockIcon from '@mui/icons-material/Lock'
 import LockOpenIcon from '@mui/icons-material/LockOpen'
 import WarningIcon from '@mui/icons-material/Warning'
+import DeleteIcon from '@mui/icons-material/Delete'
 import { Task } from '../types'
 import { formatDuration } from '../utils/timeCalculations'
 import { colors } from '../theme/theme'
@@ -10,8 +11,8 @@ import { draggable, dropTargetForElements } from '@atlaskit/pragmatic-drag-and-d
 
 interface TaskBlockProps {
   task: Task
-  index: number
   onToggleLock: (taskId: string) => void
+  onDelete: (taskId: string) => void
   onDragStart?: (taskId: string) => void
   onDragEnd?: () => void
   onDrop?: (draggedTaskId: string, targetTaskId: string, dropY: number) => void
@@ -30,8 +31,8 @@ interface TaskBlockProps {
  */
 export const TaskBlock = ({
   task,
-  index,
   onToggleLock,
+  onDelete,
   onDragStart,
   onDragEnd,
   onDrop,
@@ -41,7 +42,19 @@ export const TaskBlock = ({
   const [isHovered, setIsHovered] = useState(false)
   const [isBeingDragged, setIsBeingDragged] = useState(false)
   const [isDropTarget, setIsDropTarget] = useState(false)
+  const [showNewHighlight, setShowNewHighlight] = useState(task.isNew ?? false)
   const cardRef = useRef<HTMLDivElement>(null)
+
+  // Clear the highlight after animation
+  useEffect(() => {
+    if (task.isNew) {
+      setShowNewHighlight(true)
+      const timer = setTimeout(() => {
+        setShowNewHighlight(false)
+      }, 3000) // Highlight for 3 seconds
+      return () => clearTimeout(timer)
+    }
+  }, [task.isNew])
 
   // Calculate height based on duration (1 minute = 1.33px)
   const height = Math.max(50, task.durationMinutes * 1.33)
@@ -101,43 +114,56 @@ export const TaskBlock = ({
       onMouseLeave={() => setIsHovered(false)}
       sx={{
         position: 'relative',
-        backgroundColor,
-        borderRadius: '8px',
+        background: `linear-gradient(135deg, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0) 100%), ${backgroundColor}`,
+        borderRadius: '20px', // More rounded as per ref
         border: isBeingDragged
-          ? '2px dashed #000000'
+          ? '2px dashed rgba(0,0,0,0.1)'
           : task.isOverlapping
-          ? `2px solid ${colors.overlapBorder}`
-          : isDropTarget
-          ? '2px solid #000000'
-          : 'none',
-        padding: '16px',
-        marginBottom: '8px',
+            ? `2px solid ${colors.overlapBorder}`
+            : isDropTarget
+              ? '2px solid rgba(0,0,0,0.2)'
+              : '1px solid rgba(0,0,0,0.03)',
+        padding: '24px', // More padding
         minHeight: `${height}px`,
         cursor: task.isLocked ? 'not-allowed' : isBeingDragged ? 'grabbing' : 'grab',
-        opacity: isBeingDragged ? 0.85 : isDragging ? 0.85 : isPreview ? 0.6 : 1,
-        transition: 'box-shadow 150ms ease, opacity 150ms ease, border 150ms ease',
-        boxShadow: isBeingDragged ? '0 4px 12px rgba(0,0,0,0.15)' : 'none',
+        opacity: isBeingDragged ? 0.8 : isDragging ? 0.8 : isPreview ? 0.6 : 1,
+        transition: 'all 200ms cubic-bezier(0.4, 0, 0.2, 1)',
+        boxShadow: isBeingDragged
+          ? '0 20px 40px rgba(0,0,0,0.12)'
+          : showNewHighlight
+            ? '0 0 0 3px #4CAF50, 0 8px 20px rgba(76, 175, 80, 0.2)'
+            : '0 8px 24px rgba(0,0,0,0.06)', // Softer shadow
         '&:hover': {
-          boxShadow: task.isLocked || isBeingDragged ? 'none' : '0 2px 8px rgba(0,0,0,0.1)',
+          boxShadow: task.isLocked || isBeingDragged ? '0 8px 24px rgba(0,0,0,0.06)' : '0 12px 32px rgba(0,0,0,0.1)',
+          transform: task.isLocked || isBeingDragged ? 'none' : 'translateY(-1px)',
         },
         // Overlapping pulse animation
-        animation: task.isOverlapping ? 'pulse 1.5s ease-in-out infinite' : 'none',
+        animation: task.isOverlapping
+          ? 'pulse 1.5s ease-in-out infinite'
+          : showNewHighlight
+            ? 'newTaskGlow 0.5s ease-out'
+            : 'none',
         '@keyframes pulse': {
           '0%, 100%': { borderColor: colors.overlapBorder, opacity: 1 },
           '50%': { borderColor: colors.overlapBorder, opacity: 0.6 },
         },
+        '@keyframes newTaskGlow': {
+          '0%': { boxShadow: '0 0 0 6px #4CAF50, 0 8px 24px rgba(76, 175, 80, 0.4)' },
+          '100%': { boxShadow: '0 0 0 3px #4CAF50, 0 4px 12px rgba(76, 175, 80, 0.2)' },
+        },
+        overflow: 'hidden',
       }}
     >
       {/* Task Title */}
       <Typography
         variant="h6"
         sx={{
-          fontSize: '18px',
+          fontSize: '20px',
           fontWeight: 600,
-          color: '#000000',
-          lineHeight: 1.3,
+          color: 'rgba(0,0,0,0.85)',
+          lineHeight: 1.2,
           mb: 0.5,
-          pr: 4, // Space for lock icon
+          pr: 4,
         }}
       >
         {task.title}
@@ -147,8 +173,9 @@ export const TaskBlock = ({
       <Typography
         variant="body2"
         sx={{
-          fontSize: '13px',
-          color: '#666666',
+          fontSize: '15px',
+          fontWeight: 500,
+          color: 'rgba(0,0,0,0.45)',
         }}
       >
         Est. {formatDuration(task.durationMinutes)}
@@ -174,6 +201,25 @@ export const TaskBlock = ({
           />
         )}
 
+        {/* Delete Icon - appears on hover */}
+        <IconButton
+          size="small"
+          onClick={(e) => {
+            e.stopPropagation()
+            onDelete(task.id)
+          }}
+          sx={{
+            opacity: isHovered ? 1 : 0,
+            transition: 'opacity 150ms ease',
+            padding: '4px',
+            '&:hover': {
+              backgroundColor: 'rgba(239, 83, 80, 0.1)',
+            },
+          }}
+        >
+          <DeleteIcon sx={{ fontSize: '18px', color: '#EF5350' }} />
+        </IconButton>
+
         {/* Lock/Unlock Icon */}
         <IconButton
           size="small"
@@ -197,6 +243,26 @@ export const TaskBlock = ({
           )}
         </IconButton>
       </Box>
+
+      {/* New task highlight bar on right side */}
+      {showNewHighlight && (
+        <Box
+          sx={{
+            position: 'absolute',
+            top: 0,
+            right: 0,
+            bottom: 0,
+            width: '4px',
+            backgroundColor: '#4CAF50',
+            borderRadius: '0 8px 8px 0',
+            animation: 'highlightPulse 1s ease-in-out infinite',
+            '@keyframes highlightPulse': {
+              '0%, 100%': { opacity: 1 },
+              '50%': { opacity: 0.5 },
+            },
+          }}
+        />
+      )}
     </Card>
   )
 }

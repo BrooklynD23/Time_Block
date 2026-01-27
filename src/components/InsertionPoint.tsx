@@ -21,44 +21,63 @@ export const InsertionPoint = ({
     <Box
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
+      onClick={onClick}
       sx={{
-        height: '0px',
+        height: '32px', // Height for the hover area above task
+        marginBottom: '-8px', // Pull it closer to the task below
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        opacity: isHovered || isActive ? 1 : 0,
-        transition: 'opacity 150ms ease',
         cursor: 'pointer',
         position: 'relative',
         zIndex: 10,
       }}
     >
-      <IconButton
-        onClick={onClick}
+      {/* Visual Container - only visible on hover */}
+      <Box
         sx={{
-          width: '24px',
-          height: '24px',
-          backgroundColor: '#FFFFFF',
-          border: '1.5px solid #000000',
-          transition: 'all 200ms ease',
-          padding: 0,
-          minWidth: 'unset',
-          '&:hover': {
-            backgroundColor: '#000000',
-            '& .MuiSvgIcon-root': {
-              color: '#FFFFFF',
-            },
-          },
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: '100%',
+          opacity: isHovered || isActive ? 1 : 0,
+          transition: 'opacity 200ms ease',
+          position: 'relative',
         }}
       >
-        <AddIcon
+        {/* Minimalistic Button */}
+        <IconButton
+          disableRipple
           sx={{
-            fontSize: '16px',
-            color: '#000000',
-            transition: 'color 200ms ease',
+            width: '24px',
+            height: '24px',
+            backgroundColor: '#FFFFFF',
+            border: '1px solid #E0E0E0',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+            padding: 0,
+            zIndex: 1,
+            minWidth: 'unset',
+            transition: 'all 200ms ease',
+            '&:hover': {
+              backgroundColor: '#000000',
+              borderColor: '#000000',
+              transform: 'scale(1.15)',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+              '& .MuiSvgIcon-root': {
+                color: '#FFFFFF',
+              },
+            },
           }}
-        />
-      </IconButton>
+        >
+          <AddIcon
+            sx={{
+              fontSize: '16px',
+              color: '#666666',
+              transition: 'color 200ms ease',
+            }}
+          />
+        </IconButton>
+      </Box>
     </Box>
   )
 }
